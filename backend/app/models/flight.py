@@ -1,11 +1,8 @@
-from typing import Any
 from sqlalchemy import String, Integer, Float, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import datetime
 
-from core.database import Base
-from .airport import Airport
-
+from app.core.database import Base
+from app.models.airport import Airport
 
 class ScrapedFlight(Base):
     __tablename__ = "scraped_flights"
@@ -16,7 +13,16 @@ class ScrapedFlight(Base):
     flight_number: Mapped[str] = mapped_column(String)
 
     dep_iata: Mapped[str] = mapped_column(String(3), ForeignKey("airports.iata_code"))
+    departure_airport: Mapped["Airport"] = relationship(
+        "Airport", 
+        foreign_keys=[dep_iata]
+    )
+
     arr_iata: Mapped[str] = mapped_column(String(3), ForeignKey("airports.iata_code"))
+    arrival_airport: Mapped["Airport"] = relationship(
+        "Airport", 
+        foreign_keys=[arr_iata]
+    )
 
     dep_time_utc: Mapped[int] = mapped_column(Integer)
     arr_time_utc: Mapped[int] = mapped_column(Integer)
@@ -27,11 +33,3 @@ class ScrapedFlight(Base):
     price: Mapped[float] = mapped_column(Float)
     price_currency: Mapped[str] = mapped_column(String)
     price_in_euro: Mapped[float] = mapped_column(Float)
-
-    departure_airport: Mapped["Airport"] = relationship(
-        "Airport", foreign_key=[dep_iata]
-    )
-
-    departure_airport: Mapped["Airport"] = relationship(
-        "Airport", foreign_key=[arr_iata]
-    )
