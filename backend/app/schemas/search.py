@@ -4,6 +4,7 @@ from datetime import date
 
 from airport import AirportResponse
 
+
 class FlightSearchRequest(BaseModel):
     dep_airports: list[str]
     dep_max_distance_km: int | None = Field(default=None, ge=0, description="Maximal distance of airport from departure airport")
@@ -66,3 +67,64 @@ class FlightSearchRequest(BaseModel):
             cleaned_list.append(code.upper())
 
         return cleaned_list
+
+
+class ScrapedFlight(BaseModel):
+    id: int
+
+    airline_name: str
+    flight_number: str
+
+    dep_iata: str
+    departure_airport: AirportResponse
+
+    arr_iata: str
+    arrival_airport: AirportResponse
+
+    dep_time_utc: int
+    arr_time_utc: int
+    flight_time_mins: int
+    scraped_at_utc: int
+
+    seats_left: int
+    price: float
+    price_currency: str
+    price_in_euro: float
+
+    @field_validator('dep_iata', 'arr_iata')
+    @classmethod
+    def validate_airport(cls, airport_iata: str) -> str:
+        if len(airport_iata) != 3 or not airport_iata.isalpha():
+            raise ValueError(f'Code {airport_iata} is not valid')
+
+        return airport_iata.upper()
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SimpleScrapedFlight(BaseModel):
+
+    airline_name: str
+    flight_number: str
+
+    dep_iata: str
+    arr_iata: str
+
+    dep_time_utc: int
+    arr_time_utc: int
+    flight_time_mins: int
+    scraped_at_utc: int
+
+    seats_left: int
+    price: float
+    price_currency: str
+
+    @field_validator('dep_iata', 'arr_iata')
+    @classmethod
+    def validate_airport(cls, airport_iata: str) -> str:
+        if len(airport_iata) != 3 or not airport_iata.isalpha():
+            raise ValueError(f'Code {airport_iata} is not valid')
+
+        return airport_iata.upper()
+
+    model_config = ConfigDict(from_attributes=True)
