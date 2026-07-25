@@ -25,7 +25,6 @@ class FlightSearchRequest(BaseModel):
     weekend_flights: bool
     ext_weekend_flights: bool 
 
-
     @model_validator(mode='after')
     def check_max_stay_greater_than_min(self):
         if self.max_stay_days is not None and self.min_stay_days is not None:
@@ -67,6 +66,14 @@ class FlightSearchRequest(BaseModel):
             cleaned_list.append(code.upper())
 
         return cleaned_list
+
+    @model_validator(mode='after')
+    def check_airports_params(self):
+        if len(self.dep_airports) > 1 and self.dep_max_distance_km is not None:
+            raise ValueError(f'If more than one departure airport selected searching nearby airports is not possible')
+
+        if len(self.arr_airports) > 1 and self.arr_max_distance_km is not None:
+            raise ValueError(f'If more than one arrival airport selected searching nearby airports is not possible')       
 
 
 class ScrapedFlight(BaseModel):
