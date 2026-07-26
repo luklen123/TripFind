@@ -161,6 +161,9 @@ class FlightSearchRequest(BaseModel):
             count += 1 if self.arr_date_start else 0
             count += 1 if self.arr_date_end else 0
 
+            if self.min_stay_days or self.max_stay_days:
+                raise ValueError("For weekend flight search mininal and maximal stay days can not be applied")
+
             if count != 2:
                 raise ValueError("For weekend flight search arrival dates range has to be selected")
 
