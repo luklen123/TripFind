@@ -16,6 +16,7 @@ class RyanairScraper(BaseScraper):
         date_from = date_from.strftime("%Y-%m-%d")
         if date_to is None:
             date_to = ""
+            is_round = False
         else:
             date_to = date_to.strftime("%Y-%m-%d")
             is_round = True
@@ -44,7 +45,6 @@ class RyanairScraper(BaseScraper):
         try:
             async with AsyncSession(impersonate="safari15_5") as session:
                 response = await session.get(url, headers=headers)
-            response = requests.get(url, headers=headers, impersonate="safari15_5")
 
             if response.status_code == 200:
                 return response.json()
@@ -55,8 +55,11 @@ class RyanairScraper(BaseScraper):
         except Exception as e:
             print(f"Occured Exception: {e}")
 
-
-    def parse_response(response: dict) -> list[SimpleScrapedFlight]:
+    @staticmethod
+    def parse_response(response: dict | None) -> list[SimpleScrapedFlight]:
+        if not response:
+            return []
+        
         fetched_results = []
 
         scraped_at_utc = int(datetime.fromisoformat(response['serverTimeUTC'].replace('Z', '+00:00')).timestamp())
