@@ -12,7 +12,7 @@ class Airport(Base):
     iata_code: Mapped[str] = mapped_column(String(3), primary_key=True)
     name: Mapped[str] = mapped_column(String)
     city: Mapped[str] = mapped_column(String)
-    country: Mapped[str] = mapped_column(String)
+    country_iso: Mapped[str] = mapped_column(String)
     timezone: Mapped[str] = mapped_column(String)
 
     location: Mapped[Any] = mapped_column(Geometry(geometry_type="POINT", srid=4326))
