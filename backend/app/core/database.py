@@ -1,20 +1,21 @@
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 from .config import settings
 
-engine = create_engine(settings.DATABASE_URL)
+engine = create_async_engine(settings.DATABASE_URL)
 
-SessionLocal = sessionmaker(
+SessionLocal = async_sessionmaker(
+    bind=engine,
     autocommit=False,
     autoflush=False, 
-    bind=engine
+    expire_on_commit=False
 )
 
 class Base(DeclarativeBase): 
     pass 
 
-def get_db():
+async def get_db():
     db = SessionLocal()
     try:
         yield db
