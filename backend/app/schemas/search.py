@@ -2,7 +2,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator, field_valida
 from datetime import date
 
 
-from airport import AirportResponse
+from app.schemas.airport import AirportResponse
+
 
 
 class FlightSearchRequest(BaseModel):
@@ -95,6 +96,17 @@ class FlightSearchRequest(BaseModel):
 
         return self
 
+    @model_validator(mode="after")
+    def check_dep_and_arr_separation(self):
+        dep_iata_set = set(self.dep_airports)
+        arr_iata_set = set(self.arr_airports)
+
+        common_iata = dep_iata_set & arr_iata_set
+        if common_iata:
+            raise ValueError(f"The following airports cannot be in both departure and arrival: {common_iata}")
+        
+        return self
+    
     @model_validator(mode='after')
     def check_dep_end_greater_than_start(self):
         if self.dep_date_end < self.dep_date_start:
