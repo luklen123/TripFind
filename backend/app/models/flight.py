@@ -1,8 +1,11 @@
 from sqlalchemy import String, Integer, Float, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+
 from app.core.database import Base
 from app.models.airport import Airport
+
+
 
 class ScrapedFlight(Base):
     __tablename__ = "scraped_flights"
