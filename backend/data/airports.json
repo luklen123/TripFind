@@ -1,0 +1,38 @@
+[
+  {
+    "iata": "WRO",
+    "name": "Copernicus Wrocław Airport",
+    "city": "Wrocław",
+    "country": "PL",
+    "timezone": "Europe/Warsaw",
+    "longitude": 16.8858,
+    "latitude": 51.1027
+  },
+  {
+    "iata": "WAW",
+    "name": "Warsaw Chopin Airport",
+    "city": "Warsaw",
+    "country": "PL",
+    "timezone": "Europe/Warsaw",
+    "longitude": 20.9671,
+    "latitude": 52.1657
+  },
+  {
+    "iata": "STN",
+    "name": "London Stansted Airport",
+    "city": "London",
+    "country": "GB",
+    "timezone": "Europe/London",
+    "longitude": 0.2350,
+    "latitude": 51.8850
+  },
+  {
+    "iata": "BGY",
+    "name": "Orio al Serio International Airport",
+    "city": "Milan",
+    "country": "IT",
+    "timezone": "Europe/Rome",
+    "longitude": 9.7042,
+    "latitude": 45.6689
+  }
+]
