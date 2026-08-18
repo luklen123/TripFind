@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wyszukiwarka Lotów - ZłapLot</title>
+    <!-- Tailwind CSS do szybkiego stylowania -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js do reaktywnego UI -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+<div id="app" class="max-w-6xl mx-auto p-6">
+    <!-- 1. NAGŁÓWEK / WYSZUKIWARKA -->
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <h1 class="text-3xl font-bold text-blue-600 mb-6">✈️ ZłapLot</h1>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+            <!-- Lotniska -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Skąd (IATA)</label>
+                <input type="text" v-model="searchParams.dep_airports" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="WRO">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Dokąd (IATA)</label>
+                <input type="text" v-model="searchParams.arr_airports" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="STN">
+            </div>
+            
+            <!-- Daty Wylotu (Wymagane przez backend) -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Wyloty od</label>
+                <input type="date" v-model="searchParams.dep_date_start" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Wyloty do</label>
+                <input type="date" v-model="searchParams.dep_date_end" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            </div>
+
+            <!-- Daty Powrotu (Opcjonalne) -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Powroty od</label>
+                <input type="date" v-model="searchParams.arr_date_start" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Powroty do</label>
+                <input type="date" v-model="searchParams.arr_date_end" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none">
+            </div>
+
+            <!-- Długość pobytu -->
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Min. dni pobytu</label>
+                <input type="number" v-model="searchParams.min_stay_days" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none" min="0" max="30">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-600 mb-1">Max. dni pobytu</label>
+                <input type="number" v-model="searchParams.max_stay_days" class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-400 focus:outline-none" min="0" max="30">
+            </div>
+        </div>
+
+        <div class="flex justify-end">
+            <button @click="searchFlights" :disabled="loading" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md disabled:opacity-50 transition-colors flex items-center gap-2">
+                <svg v-if="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {{ loading ? 'Szukam lotów...' : 'Szukaj Lotów' }}
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. WYNIKI WYSZUKIWANIA -->
+    <div v-if="flightData" class="space-y-8">
+        
+        <!-- NAJLEPSZE POŁĄCZENIE (Wykorzystuje Twoją zaktualizowaną listę "flights" na wypadek remisów) -->
+        <section v-if="flightData.best_overall && flightData.best_overall.flights" class="bg-green-50 border-l-4 border-green-500 p-6 rounded-r-xl shadow-sm">
+            <h2 class="text-xl font-bold text-green-700 mb-2">🏆 Najtańsza opcja ({{ flightData.best_overall.cheapest_price }} {{ flightData.best_overall.currency }})</h2>
+            <p v-if="flightData.best_overall.flights.length > 1" class="text-sm text-green-600 mb-4">
+                Znaleźliśmy {{ flightData.best_overall.flights.length }} opcje w tej samej, najniższej cenie!
+            </p>
+            
+            <div v-for="(combo, index) in flightData.best_overall.flights" :key="index" class="bg-white p-4 rounded shadow-sm mt-4 border border-green-100">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Wylot -->
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase">Wylot ({{ combo.outbound_flight.airline_name }})</span>
+                        <div class="font-bold text-lg">
+                            {{ combo.outbound_flight.dep_iata }} ➔ {{ combo.outbound_flight.arr_iata }}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            {{ formatTime(combo.outbound_flight.dep_time_utc) }}
+                        </div>
+                    </div>
+                    <!-- Powrót -->
+                    <div>
+                        <span class="text-xs font-bold text-gray-400 uppercase">Powrót ({{ combo.return_flight.airline_name }})</span>
+                        <div class="font-bold text-lg">
+                            {{ combo.return_flight.dep_iata }} ➔ {{ combo.return_flight.arr_iata }}
+                        </div>
+                        <div class="text-sm text-gray-600">
+                            {{ formatTime(combo.return_flight.dep_time_utc) }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ELASTYCZNE DNI -->
+        <section v-if="flightData.flexible_durations && Object.keys(flightData.flexible_durations).length > 0">
+            <h2 class="text-xl font-bold mb-4">📅 Najtańsze opcje wg długości pobytu</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div v-for="(details, days) in flightData.flexible_durations" :key="days" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 text-center hover:border-blue-300 hover:shadow-md cursor-pointer transition-all">
+                    <div class="text-sm text-gray-500 font-bold uppercase">{{ days }} dni na miejscu</div>
+                    <div class="text-2xl font-black text-blue-600 mt-2">{{ details.cheapest_price }} {{ details.currency }}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- KALENDARZ WYLOTÓW I POWROTÓW -->
+        <section v-if="flightData.calendar_view" class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Wyloty -->
+            <div v-if="flightData.calendar_view.outbound">
+                <h2 class="text-xl font-bold mb-4">🛫 Kalendarz Wylotów</h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <div v-for="(details, date) in flightData.calendar_view.outbound" :key="date" class="bg-white p-3 rounded shadow-sm text-center border-t-4 border-blue-400 cursor-help" :title="`Najtańszy lot: ${details.cheapest_flight.flight_number}`">
+                        <div class="text-sm text-gray-500 mb-1">{{ date }}</div>
+                        <div class="font-bold text-lg text-gray-800">{{ details.cheapest_price }} {{ details.currency }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Powroty -->
+            <div v-if="flightData.calendar_view.return">
+                <h2 class="text-xl font-bold mb-4">🛬 Kalendarz Powrotów</h2>
+                <div class="grid grid-cols-3 gap-2">
+                    <div v-for="(details, date) in flightData.calendar_view.return" :key="date" class="bg-white p-3 rounded shadow-sm text-center border-t-4 border-orange-400 cursor-help" :title="`Najtańszy lot: ${details.cheapest_flight.flight_number}`">
+                        <div class="text-sm text-gray-500 mb-1">{{ date }}</div>
+                        <div class="font-bold text-lg text-gray-800">{{ details.cheapest_price }} {{ details.currency }}</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+</div>
+
+<script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+        setup() {
+            const flightData = ref(null);
+            const loading = ref(false);
+            
+            // Domyślne wartości wpisane w formularz startowy
+            const searchParams = ref({
+                dep_airports: 'WRO',
+                arr_airports: 'STN',
+                dep_date_start: '2026-10-14',
+                dep_date_end: '2026-10-22',
+                arr_date_start: '2026-10-14',
+                arr_date_end: '2026-10-22',
+                min_stay_days: 2,
+                max_stay_days: 8
+            });
+
+            // Funkcja formatująca czas UNIX -> Czas lokalny
+            const formatTime = (unixTimestamp) => {
+                const date = new Date(unixTimestamp * 1000);
+                return date.toLocaleString('pl-PL', { 
+                    weekday: 'short', 
+                    day: 'numeric', 
+                    month: 'short', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            };
+
+            const searchFlights = async () => {
+                loading.value = true;
+                flightData.value = null; // Czyścimy stary widok na czas szukania
+
+                try {
+                    // ADRES TWOJEGO BACKENDU
+                    const apiUrl = 'http://127.0.0.1:8000/api/v1/search/'; 
+                    
+                    // Budujemy obiekt DOKŁADNIE pod Twój FlightSearchRequest
+                    const payload = {
+                        // Twój Pydantic oczekuje list: list[str]
+                        dep_airports: searchParams.value.dep_airports ? [searchParams.value.dep_airports] : [],
+                        arr_airports: searchParams.value.arr_airports ? [searchParams.value.arr_airports] : [],
+                        
+                        // Daty wymgane (format YYYY-MM-DD zgadza się z datetime.date)
+                        dep_date_start: searchParams.value.dep_date_start,
+                        dep_date_end: searchParams.value.dep_date_end,
+                        
+                        // Daty opcjonalne
+                        arr_date_start: searchParams.value.arr_date_start || null,
+                        arr_date_end: searchParams.value.arr_date_end || null,
+                        
+                        // Długość pobytu - parsowanie na liczby (int)
+                        min_stay_days: searchParams.value.min_stay_days !== "" ? Number(searchParams.value.min_stay_days) : null,
+                        max_stay_days: searchParams.value.max_stay_days !== "" ? Number(searchParams.value.max_stay_days) : null,
+                        
+                        // Booleany dla weekend_flights, itp. (zgodnie z default=False)
+                        weekend_flights: false
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Obsługa błędów np. słynnego 422
+                    if (!response.ok) {
+                        const err = await response.json();
+                        console.error("Błąd zapytania z serwera (np. 422 Unprocessable Content):", err);
+                        alert(`Błąd ${response.status}. Sprawdź konsolę deweloperską (F12) po więcej szczegółów.`);
+                        throw new Error(`Server returned ${response.status}`);
+                    }
+
+                    // Przypisanie JSON-a, Vue zrobi resztę!
+                    const jsonResponse = await response.json();
+                    flightData.value = jsonResponse; 
+
+                } catch (error) {
+                    console.error("Wystąpił błąd podczas połączenia:", error);
+                } finally {
+                    loading.value = false;
+                }
+            };
+
+            return {
+                flightData,
+                loading,
+                searchParams,
+                formatTime,
+                searchFlights
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>
