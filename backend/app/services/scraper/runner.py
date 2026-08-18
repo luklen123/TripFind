@@ -5,8 +5,11 @@ import asyncio
 import logging
 
 
-from app.schemas.search import ScrapedFlight, FlightSearchRequest
-from app.services.tools import check_airports_reality, check_country_reality, compute_nearby_airports, compute_country_airports, compute_weekend_dates, compute_date_chunks
+from app.schemas.search import SimpleScrapedFlight, ScrapedFlight, FlightSearchRequest
+from app.services.flight_processor import prepare_cheapest_flight, prepare_flexible_durations, prepare_flights_calendar
+from app.services.flight_repository import save_scraped_flights
+from app.utils.date_helpers import compute_date_chunks, compute_weekend_dates
+from app.services.geo import check_airports_reality, check_country_reality, compute_country_airports, compute_nearby_airports
 from app.services.scraper.ryanair import RyanairScraper, BaseScraper
 
 
@@ -26,7 +29,7 @@ async def fetch_with_semaphore(scraper: BaseScraper, semaphore: asyncio.Semaphor
             return []
 
 
-async def execute_scraping_batch(search_params: list[tuple]) -> list[ScrapedFlight]:
+async def execute_scraping_batch(search_params: list[tuple]) -> list[SimpleScrapedFlight]:
     max_concurrent_requests = 5
     semaphore = asyncio.Semaphore(max_concurrent_requests)
 
@@ -40,13 +43,19 @@ async def execute_scraping_batch(search_params: list[tuple]) -> list[ScrapedFlig
     return flat_results
 
 
-async def perform_scrape(db: AsyncSession, params: FlightSearchRequest):
-    search_params = await compute_search_params(db, params)
+async def perform_scrape(db: AsyncSession, params: FlightSearchRequest) -> dict:
+    search_params, airports_iata= await compute_search_params(db, params)
 
-    return await execute_scraping_batch(search_params)
+    scraped_flights = await execute_scraping_batch(search_params)
+    saved_flights = await save_scraped_flights(db, scraped_flights)
+    outgoing_flights, retrun_flights = separate_flights(airports_iata, saved_flights)
+
+    results = compute_best_routes(params, outgoing_flights, retrun_flights)
+
+    return results
 
 
-async def compute_search_params(db: AsyncSession, params: FlightSearchRequest) -> list[tuple[tuple[str, str], tuple[date, date | None]]]:
+async def compute_search_params(db: AsyncSession, params: FlightSearchRequest) -> tuple[list[tuple[tuple[str, str], tuple[date, date | None]]], tuple[list[str], list[str]]]:
     await validate_params(db, params)
 
     # AIRPORTS
@@ -84,7 +93,7 @@ async def compute_search_params(db: AsyncSession, params: FlightSearchRequest) -
 
     search_params = list(product(airports_to_search, date_ranges))
 
-    return search_params
+    return (search_params, (dep_airports_to_search, arr_airports_to_search))
 
 
 async def validate_params(db: AsyncSession, params: FlightSearchRequest) -> None:
@@ -100,3 +109,36 @@ async def validate_params(db: AsyncSession, params: FlightSearchRequest) -> None
 
     if params.arr_airport_country_code:
         await check_country_reality(db, params.arr_airport_country_code)
+
+
+def separate_flights(airports_iata: tuple[list[str], list[str]], flights: list[ScrapedFlight]) -> tuple[list[ScrapedFlight], list[ScrapedFlight]]:
+    origin_iata, destination_iata = airports_iata
+
+    outgoing_flights = []
+    return_flights = []
+
+    for flight in flights:
+        if flight.dep_iata in origin_iata:
+            outgoing_flights.append(flight)
+        else:
+            return_flights.append(flight)
+
+    return (outgoing_flights, return_flights)
+
+def compute_best_routes(params: FlightSearchRequest, outbound_flights: list[ScrapedFlight], return_flights: list[ScrapedFlight]) -> dict:
+    outbound_calendar = prepare_flights_calendar(outbound_flights)
+    return_calendar = prepare_flights_calendar(return_flights)
+
+    flexible_durations = prepare_flexible_durations(params, outbound_calendar, return_calendar)
+    cheapest_flight = prepare_cheapest_flight(flexible_durations)
+
+    return {
+        "best_overall": cheapest_flight,
+        "calendar_view": {
+            "outbound": outbound_calendar,
+            "return": return_calendar
+        },
+        "flexible_durations": flexible_durations
+    }
+
+
