@@ -2,7 +2,8 @@ from datetime import timedelta, date
 
 
 
-def merge_date_chunks(dep_chunk: list[date], arr_chunk: list[date]) -> list[tuple[date, date]]:
+def merge_date_chunks(dep_chunk: list[date], arr_chunk: list[date]) -> list[tuple[date, date | None]]:
+
     chunks = []
     max_len = max(len(dep_chunk), len(arr_chunk))
 
@@ -10,7 +11,7 @@ def merge_date_chunks(dep_chunk: list[date], arr_chunk: list[date]) -> list[tupl
         dep = dep_chunk[i] if i < len(dep_chunk) else dep_chunk[-1]
         arr = arr_chunk[i] if i < len(arr_chunk) else arr_chunk[-1]
 
-        if arr < dep:
+        if arr is not None and arr < dep:
             chunks.append((arr, arr))
         else:
             chunks.append((dep, arr))
@@ -18,7 +19,11 @@ def merge_date_chunks(dep_chunk: list[date], arr_chunk: list[date]) -> list[tupl
     return chunks
 
 
-def get_date_chunks(date_from: date, date_to: date, window_days: int = 7) -> list[date]:
+def get_date_chunks(date_from: date, date_to: date, window_days: int = 7) -> list[date | None]:
+    print(f"takie to jest {date_from} {date_to}")
+    if date_from is None or date_to is None:
+        return [None]
+    
     date_chunks = []
 
     current_date = date_from 
@@ -29,7 +34,7 @@ def get_date_chunks(date_from: date, date_to: date, window_days: int = 7) -> lis
     return date_chunks
 
 
-def compute_date_chunks(dep_date_start: date, dep_date_end: date, arr_date_start: date, arr_date_end: date) -> list[tuple[date, date]]:
+def compute_date_chunks(dep_date_start: date, dep_date_end: date, arr_date_start: date, arr_date_end: date) -> list[tuple[date, date | None]]:
     dep_date_chunks = get_date_chunks(dep_date_start, dep_date_end)
     arr_date_chunks = get_date_chunks(arr_date_start, arr_date_end)
 
@@ -43,6 +48,9 @@ def convert_to_mins(duration: str) -> int:
 
 
 def compute_weekend_dates(date_from: date, date_to: date) -> list[tuple[date, date]]:
+    if date_to is None:
+        return []
+    
     weekend_dates = []
 
     # 0 - Monday, ... , 6 - Sunday
