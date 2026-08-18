@@ -5,7 +5,7 @@ from pprint import pprint
 
 from app.services.scraper.base import BaseScraper
 from app.schemas.search import SimpleScrapedFlight
-from app.services.tools import convert_to_mins
+from app.utils.date_helpers import convert_to_mins
 
 
 
