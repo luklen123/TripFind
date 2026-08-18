@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 from app.api.v1.airports import router as airports_router
+from app.api.v1.search import router as search_router
 
 
 
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(airports_router)
+app.include_router(search_router)
 
 
 @app.get("/api/health")
