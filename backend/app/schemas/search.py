@@ -75,6 +75,9 @@ class FlightSearchRequest(BaseModel):
         if not has_country and not has_airports:
             raise ValueError('You must provide either departure airports or a departure country code.')
 
+        if airports_count > 3:
+            raise ValueError('You can select up to 3 airports')
+
         return self
      
     @model_validator(mode='after')
@@ -94,18 +97,23 @@ class FlightSearchRequest(BaseModel):
         if not has_country and not has_airports:
             raise ValueError('You must provide either arrival airports or a arrival country code.')
 
+        if airports_count > 3:
+            raise ValueError('You can select up to 3 airports')
+
         return self
 
     @model_validator(mode="after")
     def check_dep_and_arr_separation(self):
-        dep_iata_set = set(self.dep_airports)
-        arr_iata_set = set(self.arr_airports)
+        if self.dep_airports is None or self.arr_airports is None:
+            return self
 
-        common_iata = dep_iata_set & arr_iata_set
+        common_iata = set(self.dep_airports) & set(self.arr_airports)
+
         if common_iata:
             raise ValueError(f"The following airports cannot be in both departure and arrival: {common_iata}")
         
         return self
+
     
     @model_validator(mode='after')
     def check_dep_end_greater_than_start(self):
@@ -132,16 +140,21 @@ class FlightSearchRequest(BaseModel):
 
     @model_validator(mode='after')
     def check_arr_dates_later_then_dep(self):
-        if self.arr_date_end:
+        if self.dep_date_start and self.arr_date_start:
+            if self.arr_date_start < self.dep_date_start:
+                raise ValueError('Arrival start date cannot be earlier than departure start date') 
+            
+        if self.dep_date_end and self.arr_date_end:
             if self.arr_date_end < self.dep_date_end:
-                raise ValueError('Arrival date have to be later than departure date')
+                raise ValueError('Arrival end date have to be later than departure end date')     
         
         return self
 
+
     @model_validator(mode='after')
     def check_max_stay_greater_than_min(self):
-        count = 0
 
+        count = 0
         count += 1 if self.min_stay_days is not None else 0
         count += 1 if self.max_stay_days is not None else 0
 
@@ -156,14 +169,22 @@ class FlightSearchRequest(BaseModel):
 
     @model_validator(mode='after')
     def check_stay_days_validity(self):
-        if self.max_stay_days is not None:
-            if self.arr_date_end:
-                days_diff = (self.arr_date_end - self.dep_date_start).days
+        if self.max_stay_days is None:
+            return self
+        
+        if not self.arr_date_end or not self.arr_date_start:
+            raise ValueError("Stay days can not be passed when flight is oneway")
 
-                if days_diff < self.max_stay_days:
-                    raise ValueError("Given range for stay days is too wide")
+        max_possible_stay = (self.arr_date_end - self.dep_date_start).days
+        if max_possible_stay < self.max_stay_days:
+            raise ValueError(f"Given range for stay days is too wide. Max possible is {max_possible_stay}")
+
+        min_possible_stay = max((self.arr_date_start - self.dep_date_end).days, 0)
+        if self.min_stay_days < min_possible_stay:
+            raise ValueError(f"Minimal stay days cannot be less than the mathematical minimum possible of {min_possible_stay}")
 
         return self
+
 
     @model_validator(mode='after')
     def check_weekend_flights_validity(self):
