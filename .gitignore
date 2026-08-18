@@ -1,7 +1,23 @@
-venv/
-
+# Environment variables
 .env
 
+# Virtual environments
+venv/
+env/
+
+# Python cache and compiled files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# OS generated files (macOS & Windows)
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# Application logs
+*.log
+
+# IDE configuration files
+.vscode/
+.idea/
