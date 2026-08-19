@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.database import Base
 from app.models.airport import Airport
 from app.models.flight import ScrapedFlight
+from app.models.country import Country
 
 def include_object(object, name, type_, reflected, compare_to):
     postgis_tables = {
