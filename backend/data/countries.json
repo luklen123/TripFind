@@ -1,0 +1,150 @@
+[
+  {
+    "name": "Albania",
+    "code": "AL"
+  },
+  {
+    "name": "Austria",
+    "code": "AT"
+  },
+  {
+    "name": "Belgia",
+    "code": "BE"
+  },
+  {
+    "name": "Bośnia i Hercegowina",
+    "code": "BA"
+  },
+  {
+    "name": "Bułgaria",
+    "code": "BG"
+  },
+  {
+    "name": "Chorwacja",
+    "code": "HR"
+  },
+  {
+    "name": "Cypr",
+    "code": "CY"
+  },
+  {
+    "name": "Czarnogóra",
+    "code": "ME"
+  },
+  {
+    "name": "Czechy",
+    "code": "CZ"
+  },
+  {
+    "name": "Dania",
+    "code": "DK"
+  },
+  {
+    "name": "Estonia",
+    "code": "EE"
+  },
+  {
+    "name": "Finlandia",
+    "code": "FI"
+  },
+  {
+    "name": "Francja",
+    "code": "FR"
+  },
+  {
+    "name": "Grecja",
+    "code": "GR"
+  },
+  {
+    "name": "Hiszpania",
+    "code": "ES"
+  },
+  {
+    "name": "Holandia",
+    "code": "NL"
+  },
+  {
+    "name": "Irlandia",
+    "code": "IE"
+  },
+  {
+    "name": "Izrael",
+    "code": "IL"
+  },
+  {
+    "name": "Jordania",
+    "code": "JO"
+  },
+  {
+    "name": "Litwa",
+    "code": "LT"
+  },
+  {
+    "name": "Luksemburg",
+    "code": "LU"
+  },
+  {
+    "name": "Łotwa",
+    "code": "LV"
+  },
+  {
+    "name": "Malta",
+    "code": "MT"
+  },
+  {
+    "name": "Maroko",
+    "code": "MA"
+  },
+  {
+    "name": "Niemcy",
+    "code": "DE"
+  },
+  {
+    "name": "Norwegia",
+    "code": "NO"
+  },
+  {
+    "name": "Polska",
+    "code": "PL"
+  },
+  {
+    "name": "Portugalia",
+    "code": "PT"
+  },
+  {
+    "name": "Rumunia",
+    "code": "RO"
+  },
+  {
+    "name": "Serbia",
+    "code": "RS"
+  },
+  {
+    "name": "Słowacja",
+    "code": "SK"
+  },
+  {
+    "name": "Szwajcaria",
+    "code": "CH"
+  },
+  {
+    "name": "Szwecja",
+    "code": "SE"
+  },
+  {
+    "name": "Turcja",
+    "code": "TR"
+  },
+  {
+    "name": "Węgry",
+    "code": "HU"
+  },
+  {
+    "name": "Wielka Brytania",
+    "code": "GB"
+  },
+  {
+    "name": "Włochy",
+    "code": "IT"
+  }
+]
