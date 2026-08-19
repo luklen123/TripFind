@@ -4,8 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.airports import router as airports_router
 from app.api.v1.search import router as search_router
-
-
+from app.api.v1.countries import router as countries_router
 
 app = FastAPI(title="TripFind API", version="1.0.0")
 
@@ -19,6 +18,7 @@ app.add_middleware(
 
 app.include_router(airports_router)
 app.include_router(search_router)
+app.include_router(countries_router)
 
 
 @app.get("/api/health")
