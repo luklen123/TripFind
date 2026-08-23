@@ -81,10 +81,6 @@ async def test_compute_country_airports_failure():
 async def test_get_nearby_airports_success():
     mock_session = AsyncMock()
 
-    origin_airport = MagicMock()
-    origin_airport.location = "SomeLocation"
-    mock_session.scalar.return_value = origin_airport
-
     nearby_result = MagicMock()
     nearby_result.all.return_value = ["WRO", "POZ"]
     mock_session.scalars.return_value = nearby_result
@@ -92,27 +88,27 @@ async def test_get_nearby_airports_success():
     result = await get_nearby_airports(mock_session, "KRK", 200)
 
     assert result == ["WRO", "POZ"]
-    mock_session.scalar.assert_awaited_once()
+    mock_session.scalar.assert_not_awaited()
     mock_session.scalars.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_get_nearby_airports_origin_not_found():
     mock_session = AsyncMock()
-    mock_session.scalar.return_value = None
+    nearby_result = MagicMock()
+    nearby_result.all.return_value = []
+    mock_session.scalars.return_value = nearby_result
 
     result = await get_nearby_airports(mock_session, "XYZ", 200)
 
     assert result == []
+    mock_session.scalar.assert_not_awaited()
+    mock_session.scalars.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_get_nearby_airports_no_nearby_airports():
     mock_session = AsyncMock()
-
-    origin_airport = MagicMock()
-    origin_airport.location = "SomeLocation"
-    mock_session.scalar.return_value = origin_airport
 
     nearby_result = MagicMock()
     nearby_result.all.return_value = []
@@ -121,15 +117,13 @@ async def test_get_nearby_airports_no_nearby_airports():
     result = await get_nearby_airports(mock_session, "KRK", 200)
 
     assert result == []
-    mock_session.scalar.assert_awaited_once()
+    mock_session.scalar.assert_not_awaited()
     mock_session.scalars.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_compute_nearby_airports_success():
     mock_session = AsyncMock()
-    mock_session.scalar.return_value = MagicMock()
-
 
     nearby_result = MagicMock()
     nearby_result.all.return_value = ["WRO", "POZ"]
@@ -138,7 +132,7 @@ async def test_compute_nearby_airports_success():
     result = await compute_nearby_airports(mock_session, ["KRK"], 200)
 
     assert result == ["WRO", "POZ"]
-    mock_session.scalar.assert_awaited_once()
+    mock_session.scalar.assert_not_awaited()
     mock_session.scalars.assert_awaited_once()
 
 
