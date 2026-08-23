@@ -66,4 +66,7 @@ async def compute_country_airports(db: AsyncSession, country_code: str) -> list[
     result = await db.execute(query)
     found_airports = result.scalars().all()
 
+    if not found_airports:
+        raise ValueError("No airports found for the provided country code")
+
     return found_airports
