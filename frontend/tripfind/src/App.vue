@@ -14,6 +14,10 @@
       </div>
 
       <div v-if="result" class="w-full flex flex-col space-y-12 pb-16 px-4 sm:px-0">
+
+        <div v-if="!hasFlightResults" class="w-full rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <h2 class="text-xl font-bold text-slate-800">Found no flights</h2>
+        </div>
         
         <section v-if="result.best_overall?.flights?.length > 0">
           <div class="flex items-center space-x-3 mb-6">
@@ -64,7 +68,7 @@
           </div>
         </section>
 
-        <section v-if="result.calendar_view">
+        <section v-if="hasFlightResults && result.calendar_view">
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-10">
             
             <div v-if="result.calendar_view.outbound">
@@ -117,6 +121,16 @@ const hasFlexibleDurations = computed(() => {
   return isReturnTrip.value && 
          result.value?.flexible_durations && 
          Object.keys(result.value.flexible_durations).length > 0;
+});
+
+const hasFlightResults = computed(() => {
+  if (!result.value) {
+    return false;
+  }
+
+  return result.value.best_overall?.flights?.length > 0 ||
+    Object.keys(result.value.calendar_view?.outbound || {}).length > 0 ||
+    Object.keys(result.value.calendar_view?.return || {}).length > 0;
 });
 
 const executeSearch = async ({ payload, isReturn }) => {
