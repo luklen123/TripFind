@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from itertools import product
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 import asyncio
 import logging
 
@@ -40,6 +41,7 @@ async def execute_scraping_batch(search_params: list[tuple]) -> list[SimpleScrap
     results = await asyncio.gather(*tasks)
     flat_results = [flight for batch in results for flight in batch]
 
+    print(f"Total flights fetched: {len(flat_results)}")
     return flat_results
 
 
@@ -90,7 +92,8 @@ async def compute_search_params(db: AsyncSession, params: FlightSearchRequest) -
     else:
         date_ranges += compute_date_chunks(params.dep_date_start, params.dep_date_end, params.arr_date_start, params.arr_date_end)
 
-
+    print(f"Search outbound airports: {dep_airports_to_search}")
+    print(f"Search destination airports: {arr_airports_to_search}")
     search_params = list(product(airports_to_search, date_ranges))
 
     return (search_params, (dep_airports_to_search, arr_airports_to_search))
@@ -125,12 +128,41 @@ def separate_flights(airports_iata: tuple[list[str], list[str]], flights: list[S
 
     return (outgoing_flights, return_flights)
 
+def validate_flights(date_from: date, date_to: date, flights: list[ScrapedFlight]) -> list[ScrapedFlight]:
+    validated_flights = []
+    for flight in flights:
+        tz_name = flight.departure_airport.timezone
+        local_date = datetime.fromtimestamp(flight.dep_time_utc, tz=ZoneInfo(tz_name)).strftime('%Y-%m-%d')
+        if date_from <= datetime.strptime(local_date, '%Y-%m-%d').date() <= date_to:
+            validated_flights.append(flight)
+
+    return validated_flights
+
+
+def validate_weekend_flights(flights: list[ScrapedFlight]) -> list[ScrapedFlight]:
+    validated_flights = []
+    for flight in flights:
+        tz_name = flight.departure_airport.timezone
+        local_date = datetime.fromtimestamp(flight.dep_time_utc, tz=ZoneInfo(tz_name))
+        if local_date.weekday() >= 4:
+            validated_flights.append(flight)
+
+    return validated_flights
+
+
 def compute_best_routes(params: FlightSearchRequest, outbound_flights: list[ScrapedFlight], return_flights: list[ScrapedFlight]) -> dict:
-    outbound_calendar = prepare_flights_calendar(outbound_flights)
-    return_calendar = prepare_flights_calendar(return_flights)
+    if not params.weekend_flights:
+        validated_outbound_flights = validate_flights(params.dep_date_start, params.dep_date_end, outbound_flights)
+        validated_return_flights = validate_flights(params.arr_date_start, params.arr_date_end, return_flights)
+    else:
+        validated_outbound_flights = validate_weekend_flights(outbound_flights)
+        validated_return_flights = validate_weekend_flights(return_flights)
+
+    outbound_calendar = prepare_flights_calendar(validated_outbound_flights)
+    return_calendar = prepare_flights_calendar(validated_return_flights)
 
     flexible_durations = prepare_flexible_durations(params, outbound_calendar, return_calendar)
-    cheapest_flight = prepare_cheapest_flight(flexible_durations)
+    cheapest_flight = prepare_cheapest_flight(flexible_durations, validated_outbound_flights)
 
     return {
         "best_overall": cheapest_flight,

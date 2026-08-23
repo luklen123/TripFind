@@ -1,6 +1,8 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2.functions import ST_DWithin
+from geoalchemy2 import Geography
+from sqlalchemy import cast
 
 
 from app.models.airport import Airport
@@ -23,17 +25,20 @@ async def check_airports_reality(db: AsyncSession, iata_codes: list[str]) -> Non
 async def get_nearby_airports(db: AsyncSession, origin_iata: str, radious_km: int) -> list[str]:
     """Finds airports in provided radious"""
 
-    query_origin = select(Airport).where(Airport.iata_code == origin_iata)   
-    origin_airport = await db.scalar(query_origin)
-
-    if not origin_airport:
-        return []
-    
     radious_meters = radious_km * 1000
+    origin_location = (
+        select(Airport.location)
+        .where(Airport.iata_code == origin_iata)
+        .scalar_subquery()
+    )
     query_nearby = (
         select(Airport.iata_code)
         .where(
-            ST_DWithin(Airport.location, origin_airport.location, radious_meters)
+            ST_DWithin(
+                cast(Airport.location, Geography),
+                cast(origin_location, Geography),
+                radious_meters,
+            )
         )
     )
     nearby_airports = await db.scalars(query_nearby)

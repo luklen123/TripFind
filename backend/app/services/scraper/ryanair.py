@@ -59,7 +59,7 @@ class RyanairScraper(BaseScraper):
 
                 page.on("response", handle_response)
                 
-                print(f"Starting browser and visiting: {frontend_url}")
+                print(f"Starting browser")
                 await page.goto(frontend_url)
                 
                 for _ in range(15):
@@ -120,4 +120,5 @@ class RyanairScraper(BaseScraper):
                     }
                     fetched_results.append(SimpleScrapedFlight(**mapped_data))
 
+        print(f"Fetched {len(fetched_results)} flights")
         return fetched_results

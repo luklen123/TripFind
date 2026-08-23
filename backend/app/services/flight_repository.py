@@ -12,18 +12,23 @@ async def save_scraped_flights(db: AsyncSession, scraped_flights: list[SimpleScr
     if scraped_flights is None or len(scraped_flights) == 0:
         return []
 
-    try:
-        origin_iata = scraped_flights[0].dep_iata
-        destination_iata = scraped_flights[0].arr_iata
+    airports_dict = {}
+    for flight in scraped_flights:
+        airports_dict[flight.dep_iata] = None
+        airports_dict[flight.arr_iata] = None
 
-        airports_query = select(Airport).where(Airport.iata_code.in_([origin_iata, destination_iata]))
+    try:
+
+        airports_query = select(Airport).where(Airport.iata_code.in_(airports_dict.keys()))
         airport_results = await db.execute(airports_query)
         airports = airport_results.scalars().all()
 
-        airport_map = {airport.iata_code: airport for airport in airports}
-        missing_airports = [iata for iata in (origin_iata, destination_iata) if iata not in airport_map]
+        for airport in airports:
+            airports_dict[airport.iata_code] = airport
 
-        if missing_airports:
+        
+        if len(airports_dict) < len(airports):
+            missing_airports = [iata for iata, airport in airports_dict.items() if airport is None]
             raise ValueError(f"MISSING_AIRPORT_IN_DB: Scraper found airports which are not present in database ({missing_airports})")
 
         flights_to_db = []
@@ -32,9 +37,9 @@ async def save_scraped_flights(db: AsyncSession, scraped_flights: list[SimpleScr
                 airline_name=flight.airline_name,
                 flight_number=flight.flight_number,
                 dep_iata=flight.dep_iata,
-                departure_airport=airport_map[flight.dep_iata],
+                departure_airport=airports_dict[flight.dep_iata],
                 arr_iata=flight.arr_iata,
-                arrival_airport=airport_map[flight.arr_iata],
+                arrival_airport=airports_dict[flight.arr_iata],
                 dep_time_utc=flight.dep_time_utc,
                 arr_time_utc=flight.arr_time_utc,
                 flight_time_mins=flight.flight_time_mins,

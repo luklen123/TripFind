@@ -33,10 +33,15 @@ def prepare_flights_calendar(flights: list[ScrapedFlight]) -> dict:
 
     return calendar
 
+
 def prepare_flexible_durations(params: FlightSearchRequest, outbound_calendar: dict, return_calendar: dict) -> dict:
     if params.min_stay_days is None or params.max_stay_days is None:
-        min_limit = 0
-        max_limit = 10000
+        if params.weekend_flights:
+            min_limit = 0
+            max_limit = 3
+        else:
+            min_limit = 0
+            max_limit = 10000
     else:
         min_limit = params.min_stay_days
         max_limit = params.max_stay_days
@@ -48,17 +53,17 @@ def prepare_flexible_durations(params: FlightSearchRequest, outbound_calendar: d
         out_flight = out_details["cheapest_flight"]
         currency = out_details["currency"]
 
-        out_date = datetime.strptime(out_date_str, "%Y-%m-%d").date()
+        out_date = datetime.strptime(out_date_str, "%Y-%m-%d")
 
         for ret_date_str, ret_details in return_calendar.items():
             ret_price = ret_details["cheapest_price"]
             ret_flight = ret_details["cheapest_flight"]
 
-            ret_date = datetime.strptime(ret_date_str, "%Y-%m-%d").date()
+            ret_date = datetime.strptime(ret_date_str, "%Y-%m-%d")
 
-            day_diff = (ret_date - out_date).days
+            day_diff = (ret_date.date() - out_date.date()).days
 
-            if day_diff < min_limit or day_diff > max_limit:
+            if day_diff < min_limit or day_diff > max_limit or ret_date <= out_date:
                 continue
 
             if day_diff not in flexible_durations:
@@ -76,21 +81,31 @@ def prepare_flexible_durations(params: FlightSearchRequest, outbound_calendar: d
     return flexible_durations
 
 
-def prepare_cheapest_flight(flexible_durations: dict) -> dict:
+def prepare_cheapest_flight(flexible_durations: dict, validated_outbound_flights: list) -> dict:
     cheapest_flight = {}
 
-    for details in flexible_durations.values():
-        if "cheapest_price" not in cheapest_flight or details["cheapest_price"] < cheapest_flight["cheapest_price"]:
-            cheapest_flight["cheapest_price"] = details["cheapest_price"]
-            cheapest_flight["currency"] = details["currency"]
-            cheapest_flight["flights"] = [{
-                "outbound_flight": details["outbound_flight"],
-                "return_flight": details["return_flight"]
-            }]
-        elif details["cheapest_price"] == cheapest_flight["cheapest_price"]:
-            cheapest_flight["flights"].append({
-                "outbound_flight": details["outbound_flight"],
-                "return_flight": details["return_flight"]                
-            })
+    if flexible_durations:
+        for details in flexible_durations.values():
+            if "cheapest_price" not in cheapest_flight or details["cheapest_price"] < cheapest_flight["cheapest_price"]:
+                cheapest_flight["cheapest_price"] = details["cheapest_price"]
+                cheapest_flight["currency"] = details["currency"]
+                cheapest_flight["flights"] = [{
+                    "outbound_flight": details["outbound_flight"],
+                    "return_flight": details["return_flight"]
+                }]
+            elif details["cheapest_price"] == cheapest_flight["cheapest_price"]:
+                cheapest_flight["flights"].append({
+                    "outbound_flight": details["outbound_flight"],
+                    "return_flight": details["return_flight"]                
+                })
+    else:
+        for flight in validated_outbound_flights:
+            if "cheapest_price" not in cheapest_flight or flight.price < cheapest_flight["cheapest_price"]:
+                cheapest_flight["cheapest_price"] = flight.price
+                cheapest_flight["currency"] = flight.price_currency
+                cheapest_flight["flights"] = [{
+                    "outbound_flight": flight,
+                    "return_flight": None
+                }]
 
     return cheapest_flight 
