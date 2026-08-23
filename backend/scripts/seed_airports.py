@@ -34,7 +34,7 @@ async def load_airports_to_db(file_path: str):
                 iata_code = airport.get("iata"),
                 name = airport.get("name"),
                 city = airport.get("city"),
-                country_code = airport.get("country"),
+                country_code = airport.get("country_code"),
                 timezone = airport.get("timezone"),
                 location = location
             )
@@ -46,4 +46,4 @@ async def load_airports_to_db(file_path: str):
         print(f"Success. Loaded {len(airports_to_insert)} airports to the database")
 
 if __name__ == "__main__":
-    asyncio.run(load_airports_to_db("airports.json"))
+    asyncio.run(load_airports_to_db("data/airports.json"))
