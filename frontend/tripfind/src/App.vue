@@ -140,7 +140,8 @@ const executeSearch = async ({ payload, isReturn }) => {
   isReturnTrip.value = isReturn;
 
   try {
-    const response = await fetch('http://localhost:8000/api/v1/search', {
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    const response = await fetch(`${apiBase}/api/v1/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
